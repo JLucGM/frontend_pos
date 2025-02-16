@@ -1,3 +1,3 @@
 // config.js
-export const API_URL = 'http://pos.test/api';
+export const API_URL = 'https://pos.test/api/';
 

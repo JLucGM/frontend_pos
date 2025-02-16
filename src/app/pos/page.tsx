@@ -4,14 +4,20 @@
 import { useEffect, useState } from 'react';
 import { API_URL } from '../../service/apiConfig';
 import { Product } from '@/types/Product'; // Asegúrate de que la ruta sea correcta
+import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle,DialogTrigger,} from "@/components/ui/dialog"
+import { Input } from '@/components/ui/input';
+import {Card,CardContent,CardDescription,CardFooter,CardHeader,CardTitle,} from "@/components/ui/card"
+import { Button, buttonVariants } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Minus, Plus } from 'lucide-react';
 
 const ProductsPage = () => {
     const [products, setProducts] = useState<Product[]>([]);
-
+    
     useEffect(() => {
         const fetchProducts = async () => {
             try {
-                const response = await fetch(`${API_URL}/products`); // Asegúrate de que la URL sea correcta
+                const response = await fetch(`${API_URL}products`); // Asegúrate de que la URL sea correcta
                 if (!response.ok) {
                     throw new Error('Error al obtener los productos');
                 }
@@ -30,133 +36,206 @@ const ProductsPage = () => {
                 console.error(error);
             }
         };
-
+        
         fetchProducts();
     }, []);
 
     return (
         <div>
-            
-            {/* {products.map((product) => (
-          <li key={product.id}>
-            <h2>{product.product_name}</h2>
-            <p>{product.product_description}</p>
-            <p>Precio: {product.product_price}</p>
-            <p>Precio con descuento: {product.product_price_discount}</p>
-            <p>Impuesto: {product.tax?.tax_name} ({product.tax?.tax_rate}%)</p>
-            <p>Categorías:</p>
-            <ul>
-              {product.categories.map((category) => (
-                <li key={category.id}>{category.category_name}</li>
-              ))}
-            </ul>
-            <p>Stock disponible:</p>
-            <ul>
-              {product.stocks.map((stock) => (
-                <li key={stock.id}>Cantidad: {stock.quantity}</li>
-              ))}
-            </ul>
-            <p>Combinaciones:</p>
-            <ul>
-              {product.combinations.map((combination) => (
-                <li key={combination.id}>
-                  Precio de combinación: {combination.combination_price}
-                  <ul>
-                    {combination.combination_attribute_value.map((attrValue) => (
-                      <li key={attrValue.id}>
-                        {attrValue.attribute_value.attribute_value_name} - {attrValue.attribute_value.attribute.attribute_name}
-                      </li>
-                    ))}
-                  </ul>
-                </li>
-              ))}
-            </ul>
-            <p>Imágenes:</p>
-            <ul>
-              {product.media.map((mediaItem) => (
-                <li key={mediaItem.id}>
-                  <img src={mediaItem.original_url} alt={mediaItem.name} width="100" />
-                </li>
-              ))}
-            </ul>
-          </li>
-        ))} */}
-            {/* <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6 sm:py-24 lg:max-w-7xl lg:px-8">
+            <div className=" bg-slate-500s max-h-screen">
+                <div className="grid grid-cols-3 px-5">
 
-                <div className="grid grid-cols-3">
-                    <div className="bg-red-400 mt-6 grid grid-cols-1 gap-x-4 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:gap-x-4">
+                    <div className="max-h-screen bg-red-400s col-span-full sm:col-span-2">
+                        <ScrollArea className="h-full max-h-screen border-r-2 border-gray-200 bg-yellow-400d">
+                            <div className="p-4  grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:gap-x-4">
+                                <Input className=' col-span-full' type="text" placeholder='buscar producto (nombre, codigo de barra)' />
+                                {products.map((product) => (
+                                    <Card key={product.id}>
+                                        <CardHeader className='p-0'>
+                                            {product.media.length > 0 && (
+                                                <div key={product.media[0].id}>
+                                                    <img
+                                                        src={product.media[0].original_url}
+                                                        alt={product.media[0].name}
+                                                        className="aspect-square w-full rounded-lg bsg-gray-200 object-cover group-hover:opacity-75 lg:aspect-auto lg:h-60"
+                                                    />
+                                                </div>
+                                            )}
+                                        </CardHeader>
+                                        <CardContent className='py-0'>
+                                            <CardTitle className='text-xl'>{product.product_name}</CardTitle>
+                                            <CardDescription>{product.product_barcode}</CardDescription>
+                                        </CardContent>
+                                        <CardFooter className='py-0 space-x-2'>
+                                            {product.product_price_discount < product.product_price ? (
+                                                <>
+                                                    <span style={{ textDecoration: 'line-through' }}>
+                                                        {product.product_price}
+                                                    </span>
+                                                    <span>
+                                                        {product.product_price_discount}
+                                                    </span>
+                                                </>
+                                            ) : (
+                                                <span>
+                                                    {product.product_price}
+                                                </span>
+                                            )}
+                                        </CardFooter>
+                                    </Card>
+                                ))}
 
-                        {products.map((product) => (
-                            <div key={product.id} className="group relative">
-                                {product.media.length > 0 && (
-                                    <div key={product.media[0].id}>
-                                        <img
-                                            src={product.media[0].original_url}
-                                            alt={product.media[0].name}
-                                            className="aspect-square w-full rounded-md bg-gray-200 object-cover group-hover:opacity-75 lg:aspect-auto lg:h-80"
-                                        />
-                                    </div>
-                                )}
-                                <div className="mt-4 flex justify-between">
-                                    <div>
-                                        <h3 className="text-sm text-gray-700">
-                                            <a href="#">
-                                                <span aria-hidden="true" className="absolute inset-0" />
-                                                {product.product_name}
-                                            </a>
-                                        </h3>
-                                    </div>
-                                    <p className="text-sm font-medium text-gray-900">{product.product_price}</p>
+                            </div>
+                        </ScrollArea>
+                    </div>
+
+                    <div className="max-h-screen col-span-full sm:col-span-1">
+                        <ScrollArea className='h-1/2 max-h-1/2s bg-green-800s p-2'>
+                            <div className="">
+
+                                <div className="flex">
+                                    <Input className=' col-span-full' type="text" placeholder='buscar cliente' />
+
+                                    <Dialog>
+                                        <DialogTrigger className={buttonVariants({ variant: "outline" })} >+</DialogTrigger>
+                                        <DialogContent>
+                                            <DialogHeader>
+                                                <DialogTitle>Are you absolutely sure?</DialogTitle>
+                                                <DialogDescription>
+                                                    This action cannot be undone. This will permanently delete your account
+                                                    and remove your data from our servers.
+                                                </DialogDescription>
+                                            </DialogHeader>
+                                            <form action="">
+                                                <input type="text" name="name" />
+                                                <input type="text" name="client_identification" />
+                                                <input type="text" name="client_phone" />
+                                            </form>
+                                        </DialogContent>
+                                    </Dialog>
                                 </div>
                             </div>
-                        ))}
+                            
+                            
+                            <div className="flex items-center justify-center space-x-4 border rounded-lg p-1 my-1">
+                                <img src="https://placehold.co/50x50" alt="" />
+                                <div className="">
 
-
-                    </div>
-                </div>
-
-            </div> */}
-
-            <div className="h-screen bg-slate-500">
-                <div className="grid grid-cols-4 px-5">
-                    <div className="bg-red-400 col-span-2">
-                    <h1>Productos</h1>
-                        <div className="p-4 mt-6 grid grid-cols-1 gap-x-4 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:gap-x-4">
-
-                            {products.map((product) => (
-                                <div key={product.id} className="group relative bg-white rounded-lg">
-                                    {product.media.length > 0 && (
-                                        <div key={product.media[0].id}>
-                                            <img
-                                                src={product.media[0].original_url}
-                                                alt={product.media[0].name}
-                                                className="aspect-square w-full rounded-lg bg-gray-200 object-cover group-hover:opacity-75 lg:aspect-auto lg:h-60"
-                                            />
-                                        </div>
-                                    )}
-                                    <div className="px-2 flex justify-between">
-                                        <div>
-                                            <h3 className="text-sm text-gray-700">
-                                                <a href="#">
-                                                    <span aria-hidden="true" className="absolute inset-0" />
-                                                    {product.product_name}
-                                                </a>
-                                            </h3>
-                                        </div>
-                                        <p className="text-sm font-semibold text-gray-900">{product.product_price}</p>
-                                    </div>
+                                    <p>nombre largo del producto de prueba porque hay que probar todo bien</p>
                                 </div>
-                            ))}
+                                <div className="">
+                                    <p className='font-semibold text-destructive'>$41110.00</p>
+                                <div className="flex items-center space-x-2">
+
+                                <Button variant="default" size={"sm"}>
+                                    <Minus />
+                                </Button>
+                                    <span>1</span>
+                                <Button variant="default" size={"sm"}>
+                                    <Plus />
+                                </Button>
+                                </div>
+                                
+                                </div>
+                                <Button variant="destructive">X</Button>
+                            </div>
+                            <div className="flex items-center justify-center space-x-4 border rounded-lg p-1 my-1">
+                                <img src="https://placehold.co/50x50" alt="" />
+                                <div className="">
+
+                                    <p>nombre largo del producto de prueba porque hay que probar todo bien</p>
+                                </div>
+                                <div className="">
+                                    <p className='font-semibold text-destructive'>$41110.00</p>
+                                <div className="flex items-center space-x-2">
+
+                                <Button variant="default" size={"sm"}>
+                                    <Minus />
+                                </Button>
+                                    <span>1</span>
+                                <Button variant="default" size={"sm"}>
+                                    <Plus />
+                                </Button>
+                                </div>
+                                
+                                </div>
+                                <Button variant="destructive">X</Button>
+                            </div>
+                            <div className="flex items-center justify-center space-x-4 border rounded-lg p-1 my-1">
+                                <img src="https://placehold.co/50x50" alt="" />
+                                <div className="">
+
+                                    <p>nombre largo del producto de prueba porque hay que probar todo bien</p>
+                                </div>
+                                <div className="">
+                                    <p className='font-semibold text-destructive'>$41110.00</p>
+                                <div className="flex items-center space-x-2">
+
+                                <Button variant="default" size={"sm"}>
+                                    <Minus />
+                                </Button>
+                                    <span>1</span>
+                                <Button variant="default" size={"sm"}>
+                                    <Plus />
+                                </Button>
+                                </div>
+                                
+                                </div>
+                                <Button variant="destructive">X</Button>
+                            </div>
+                            <div className="flex items-center justify-center space-x-4 border rounded-lg p-1 my-1">
+                                <img src="https://placehold.co/50x50" alt="" />
+                                <div className="">
+
+                                    <p>nombre largo del producto de prueba porque hay que probar todo bien</p>
+                                </div>
+                                <div className="">
+                                    <p className='font-semibold text-destructive'>$41110.00</p>
+                                <div className="flex items-center space-x-2">
+
+                                <Button variant="default" size={"sm"}>
+                                    <Minus />
+                                </Button>
+                                    <span>1</span>
+                                <Button variant="default" size={"sm"}>
+                                    <Plus />
+                                </Button>
+                                </div>
+                                
+                                </div>
+                                <Button variant="destructive">X</Button>
+                            </div>
 
 
-                        </div>
-                    </div>
+                        </ScrollArea>
 
-                    <div className="bg-green-400">
-                        <h1>CArrito</h1>
-                    </div>
-                    <div className="bg-blue-400">
-                        <h1>Datos de compra y usuario</h1>
+                        <ScrollArea className='h-1/2  max-h-1/2 bg-green-400s p-2'>
+                            <div className="flex justify-end items-center space-x-1 mb-1">
+                                <p className='font-semibold text-lg'>Tax:</p>
+                                <p>0.00</p>
+                            </div>
+                            <div className="flex justify-end items-center space-x-1 mb-1">
+                                <p className='font-semibold text-lg'>Cantidad total:</p>
+                                <p>0</p>
+                            </div>
+                            <div className="flex justify-end items-center space-x-1 mb-1">
+                                <p className='font-semibold text-lg'>Carga de envio:</p>
+                                <p>0.00</p>
+                            </div>
+                            <div className="flex justify-end items-center space-x-1 mb-1">
+                                <p className='font-semibold text-lg'>Descuento:</p>
+                                <p>0.00</p>
+                            </div>
+                            <div className="flex justify-end items-center space-x-1 mb-1 border-t-4 border-t-red-600">
+                                <p className='font-semibold text-lg'>Total:</p>
+                                <p>0.00</p>
+                            </div>
+                            <div className="flex justify-end items-center space-x-1 mb-1">
+                                <Button>Cancelar</Button>
+                                <Button variant="destructive">Pagar</Button>
+
+                            </div>
+                        </ScrollArea>
                     </div>
 
                 </div>

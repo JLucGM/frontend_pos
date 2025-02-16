@@ -15,26 +15,26 @@ export function LoginForm({
 }: React.ComponentProps<"div">) {
 
   const [email, setEmail] = useState('');
-      const [password, setPassword] = useState('');
-      const [error, setError] = useState('');
-      const router = useRouter(); // Esto ahora funcionará correctamente
-  
-      const handleSubmit = async (e: React.FormEvent) => {
-          e.preventDefault();
-          setError('');
-  
-          try {
-              const data = await login(email, password);
-              // Guarda el token en localStorage
-              localStorage.setItem('token', data.token);
-              // Redirige a la página deseada
-              console.log('Login successful:', data);
-              router.push('/pos'); // Cambia '/login' a la ruta deseada
-          } catch (err) {
-              setError('Credenciales inválidas');
-              console.error(err);
-          }
-      };
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const router = useRouter(); // Esto ahora funcionará correctamente
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    try {
+      const data = await login(email, password);
+      // Guarda el token en localStorage
+      localStorage.setItem('token', data.token);
+      // Redirige a la página deseada
+      console.log('Login successful:', data);
+      router.push('/pos'); // Cambia '/login' a la ruta deseada
+    } catch (err) {
+      setError('Credenciales inválidas');
+      console.error(err);
+    }
+  };
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card className="overflow-hidden">
@@ -69,7 +69,7 @@ export function LoginForm({
                   </a> */}
                 </div>
                 <Input id="password" type="password" onChange={(e) => setPassword(e.target.value)}
- required />
+                  required />
               </div>
               <Button type="submit" className="w-full">
                 Login
