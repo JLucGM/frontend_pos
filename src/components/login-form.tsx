@@ -21,14 +21,13 @@ export function LoginForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    console.log('Email:', email + ' Password:', password);
+    // setError('');
 
     try {
       const data = await login(email, password);
-      // Guarda el token en localStorage
-      localStorage.setItem('token', data.token);
-      // Redirige a la página deseada
-      console.log('Login successful:', data);
+
+      // console.log('Login successful:', data);
       router.push('/pos'); // Cambia '/login' a la ruta deseada
     } catch (err) {
       setError('Credenciales inválidas');
@@ -52,6 +51,7 @@ export function LoginForm({
                 <Input
                   id="email"
                   type="email"
+                  name="email"
                   placeholder="m@example.com"
                   onChange={(e) => setEmail(e.target.value)}
                   value={email}
@@ -68,8 +68,13 @@ export function LoginForm({
                     Forgot your password?
                   </a> */}
                 </div>
-                <Input id="password" type="password" onChange={(e) => setPassword(e.target.value)}
-                  required />
+                <Input
+                  id="password"
+                  type="password"
+                  name="password"
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
               </div>
               <Button type="submit" className="w-full">
                 Login
