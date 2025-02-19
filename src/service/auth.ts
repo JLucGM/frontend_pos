@@ -25,7 +25,7 @@ export const login = async (email: string, password: string) => {
 
             // Serializar el token para almacenarlo en una cookie
             const serialized = serialize('myToken', jwtToken, {
-                httpOnly: true,
+                httpOnly: false,
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: 'strict',
                 path: '/',
