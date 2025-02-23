@@ -95,7 +95,7 @@ export interface Product {
   slug: string;
   product_description: string;
   product_price: string;
-  product_barcode: number;
+  product_barcode: string;
   product_sku: string;
   product_price_discount: string;
   status: number;
@@ -108,4 +108,13 @@ export interface Product {
   stocks: Stock[];
   combinations: Combination[];
   media: Media[];
+}
+
+// En '@/types/Product.ts' o en un archivo separado
+export interface Client {
+  id: number; // o string, dependiendo de tu API
+  client_name: string; // Nombre del cliente
+  slug: string; // Slug del cliente
+  client_identification: number; // Identificación del cliente
+  client_phone?: string; // Teléfono del cliente (opcional)
 }
