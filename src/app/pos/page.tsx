@@ -18,7 +18,16 @@ const ProductsPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedClient, setSelectedClient] = useState<SingleValue<{ value: number; label: string }> | null>(null); // Ajusta el tipo aquí
     const [clientOptions, setClientOptions] = useState<{ value: number; label: string }[]>([]);
-// console.log(selectedClient)
+    // Estado para el formulario del nuevo cliente
+    const [newClient, setNewClient] = useState({
+        client_name: '',
+        client_identification: '',
+        client_phone: ''
+    });
+    // Estado para el mensaje de éxito
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    // console.log(selectedClient)
+
     useEffect(() => {
         const fetchProducts = async () => {
             try {
@@ -55,7 +64,7 @@ const ProductsPage = () => {
                 if (Array.isArray(data.client)) {
                     const options = data.client.map((client: Client) => ({
                         value: client.id,
-                        label: client.client_name
+                        label: `${client.client_name} - C.I: ${client.client_identification}` // Combina nombre e identificación
                     }));
                     setClientOptions(options);
                 } else {
@@ -68,6 +77,25 @@ const ProductsPage = () => {
 
         fetchClients();
     }, []);
+
+    const fetchClients = async () => {
+        try {
+            const response = await fetch(`${API_URL}client`);
+            const data = await response.json();
+            if (Array.isArray(data.client)) {
+                const options = data.client.map((client: Client) => ({
+                    value: client.id,
+                    label: client.client_name
+                }));
+                setClientOptions(options);
+            } else {
+                console.error('La respuesta no es un array:', data.client);
+            }
+        } catch (error) {
+            console.error('Error al obtener los clientes:', error);
+        }
+    };
+
 
     const addToCart = (product: Product) => {
         setCart((prevCart) => {
@@ -147,7 +175,43 @@ const ProductsPage = () => {
         return productNameMatch || productBarcodeMatch;
     });
 
+    const handleNewClientChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setNewClient(prev => ({ ...prev, [name]: value }));
+    };
 
+    const handleCreateClient = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault(); // Evita el comportamiento por defecto del formulario
+
+        try {
+            const response = await fetch(`${API_URL}client`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(newClient),
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al crear el cliente');
+            }
+
+            const createdClient = await response.json();
+            // Limpiar el formulario
+            setNewClient({ client_name: '', client_identification: '', client_phone: '' });
+            // Limpiar la selección del cliente
+            setSelectedClient(null); // Limpiar el campo de selección
+            // Mostrar mensaje de éxito
+            setSuccessMessage(`Cliente ${createdClient.client_name} creado exitosamente!`);
+            // Limpiar el mensaje después de 3 segundos
+            setTimeout(() => setSuccessMessage(null), 3000);
+
+            // Volver a obtener la lista de clientes
+            fetchClients(); // Llama a la función que obtiene los clientes
+        } catch (error) {
+            console.error('Error al crear el cliente:', error);
+        }
+    };
 
     return (
         <div>
@@ -158,7 +222,11 @@ const ProductsPage = () => {
                         <ScrollArea className="h-full max-h-screen border-r-2 border-gray-200 bg-yellow-400d">
                             <div className="p-4  grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:gap-x-4">
                                 <Input className='capitalize col-span-full' type="text" placeholder='buscar producto (nombre, codigo de barra)' onChange={(e) => setSearchTerm(e.target.value)} />
-                                {filteredProducts.map((product) => (
+                                {products.filter(product => {
+                                    const productNameMatch = product.product_name.toLowerCase().includes(searchTerm.toLowerCase());
+                                    const productBarcodeMatch = product.product_barcode != null && product.product_barcode.toString().includes(searchTerm);
+                                    return productNameMatch || productBarcodeMatch;
+                                }).map((product) => (
                                     <button key={product.id} onClick={() => addToCart(product)}>
                                         <Card className="h-full">
                                             <CardHeader className='p-0'>
@@ -203,7 +271,6 @@ const ProductsPage = () => {
 
                     <div className="max-h-screen col-span-full sm:col-span-full md:col-span-full lg:col-span-1">
                         <ScrollArea className='h-1/2 max-h-1/2s bg-green-800s p-2'>
-                            carrito
                             <div className="">
 
                                 <div className="flex">
@@ -216,20 +283,47 @@ const ProductsPage = () => {
                                     />
 
                                     <Dialog>
-                                        <DialogTrigger className={buttonVariants({ variant: "outline" })} >+</DialogTrigger>
+                                        <DialogTrigger className={buttonVariants({ variant: "outline" })} >
+                                            <Plus />
+                                        </DialogTrigger>
                                         <DialogContent>
                                             <DialogHeader>
-                                                <DialogTitle>Are you absolutely sure?</DialogTitle>
+                                                <DialogTitle>Crea un cliente nuevo</DialogTitle>
                                                 <DialogDescription>
-                                                    This action cannot be undone. This will permanently delete your account
-                                                    and remove your data from our servers.
+                                                    Ingresa los datos requeridos para crear el cliente
                                                 </DialogDescription>
                                             </DialogHeader>
-                                            <form action="">
-                                                <input type="text" name="name" />
-                                                <input type="text" name="client_identification" />
-                                                <input type="text" name="client_phone" />
+                                            <form onSubmit={handleCreateClient}>
+                                                <Input
+                                                    type="text"
+                                                    name="client_name"
+                                                    placeholder="Nombre"
+                                                    value={newClient.client_name}
+                                                    onChange={handleNewClientChange}
+                                                    required
+                                                />
+                                                <Input
+                                                    type="text"
+                                                    name="client_identification"
+                                                    placeholder="Identificación"
+                                                    value={newClient.client_identification}
+                                                    onChange={handleNewClientChange}
+                                                    required
+                                                />
+                                                <Input
+                                                    type="text"
+                                                    name="client_phone"
+                                                    placeholder="Teléfono"
+                                                    value={newClient.client_phone}
+                                                    onChange={handleNewClientChange}
+                                                />
+                                                <Button type="submit">Crear Cliente</Button>
                                             </form>
+                                            {successMessage && (
+                                                <div className="mt-2 text-green-600">
+                                                    {successMessage}
+                                                </div>
+                                            )}
                                         </DialogContent>
                                     </Dialog>
                                 </div>
@@ -275,11 +369,11 @@ const ProductsPage = () => {
 
                         </ScrollArea>
 
-                        <ScrollArea className='h-1/2 max-h-1/2 bg-green-400 p-2'>
-                            <div className="flex justify-end items-center space-x-1 mb-1">
+                        <ScrollArea className='h-1/2 max-h-1/2 p-2'>
+                            {/* <div className="flex justify-end items-center space-x-1 mb-1">
                                 <p className='font-semibold text-lg'>Tax:</p>
                                 <p>$0.00</p>
-                            </div>
+                            </div> */}
                             <div className="flex justify-end items-center space-x-1 mb-1">
                                 <p className='font-semibold text-lg'>Subtotal:</p>
                                 <p>${calculateSubtotal()}</p>
