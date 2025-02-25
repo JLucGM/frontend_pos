@@ -11,7 +11,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Minus, Plus, Trash2 } from 'lucide-react';
 import Select, { SingleValue } from 'react-select';
-import {AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,} from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, } from "@/components/ui/alert-dialog";
 
 const ProductsPage = () => {
     const [products, setProducts] = useState<Product[]>([]);
@@ -265,9 +265,9 @@ const ProductsPage = () => {
                 <div className="grid grid-cols-3 px-5">
 
                     <div className="max-h-screen bg-red-400s col-span-full sm:col-span-full md:col-span-full lg:col-span-2 ">
-                        <ScrollArea className="h-screen max-h-screen border-r-2 border-gray-200 bg-yellow-400d">
-                            <div className="p-4  grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:gap-x-4">
-                                <Input className='capitalize col-span-full' type="text" placeholder='buscar producto (nombre, codigo de barra)' onChange={(e) => setSearchTerm(e.target.value)} />
+                        <Input className='capitalize my-4' type="text" placeholder='buscar producto (nombre, codigo de barra)' onChange={(e) => setSearchTerm(e.target.value)} />
+                        <ScrollArea className="h-screen max-h-screen border-r-2 border-gray-200 ">
+                            <div className="px-4 grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:gap-x-4">
                                 {products.filter(product => {
                                     const productNameMatch = product.product_name.toLowerCase().includes(searchTerm.toLowerCase());
                                     const productBarcodeMatch = product.product_barcode != null && product.product_barcode.toString().includes(searchTerm);
@@ -316,64 +316,62 @@ const ProductsPage = () => {
                     </div>
 
                     <div className="max-h-screen col-span-full sm:col-span-full md:col-span-full lg:col-span-1 p-4">
+                        <div className="flex mb-2">
+                            <Select
+                                options={clientOptions}
+                                value={selectedClient}
+                                onChange={setSelectedClient}
+                                placeholder="Buscar cliente"
+                                className='capitalize w-full'
+                            />
+
+                            <Dialog>
+                                <DialogTrigger className={buttonVariants({ variant: "outline" })} >
+                                    <Plus />
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Crea un cliente nuevo</DialogTitle>
+                                        <DialogDescription>
+                                            Ingresa los datos requeridos para crear el cliente
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <form onSubmit={handleCreateClient}>
+                                        <Input
+                                            type="text"
+                                            name="client_name"
+                                            placeholder="Nombre"
+                                            value={newClient.client_name}
+                                            onChange={handleNewClientChange}
+                                            required
+                                        />
+                                        <Input
+                                            type="text"
+                                            name="client_identification"
+                                            placeholder="Identificación"
+                                            value={newClient.client_identification}
+                                            onChange={handleNewClientChange}
+                                            required
+                                        />
+                                        <Input
+                                            type="text"
+                                            name="client_phone"
+                                            placeholder="Teléfono"
+                                            value={newClient.client_phone}
+                                            onChange={handleNewClientChange}
+                                        />
+                                        <Button type="submit">Crear Cliente</Button>
+                                    </form>
+                                    {successMessage && (
+                                        <div className="mt-2 text-green-600">
+                                            {successMessage}
+                                        </div>
+                                    )}
+                                </DialogContent>
+                            </Dialog>
+                        </div>
                         <ScrollArea className='h-1/2 mb-8 '>
-                            <div className="">
 
-                                <div className="flex">
-                                    <Select
-                                        options={clientOptions}
-                                        value={selectedClient}
-                                        onChange={setSelectedClient}
-                                        placeholder="Buscar cliente"
-                                        className='capitalize w-full'
-                                    />
-
-                                    <Dialog>
-                                        <DialogTrigger className={buttonVariants({ variant: "outline" })} >
-                                            <Plus />
-                                        </DialogTrigger>
-                                        <DialogContent>
-                                            <DialogHeader>
-                                                <DialogTitle>Crea un cliente nuevo</DialogTitle>
-                                                <DialogDescription>
-                                                    Ingresa los datos requeridos para crear el cliente
-                                                </DialogDescription>
-                                            </DialogHeader>
-                                            <form onSubmit={handleCreateClient}>
-                                                <Input
-                                                    type="text"
-                                                    name="client_name"
-                                                    placeholder="Nombre"
-                                                    value={newClient.client_name}
-                                                    onChange={handleNewClientChange}
-                                                    required
-                                                />
-                                                <Input
-                                                    type="text"
-                                                    name="client_identification"
-                                                    placeholder="Identificación"
-                                                    value={newClient.client_identification}
-                                                    onChange={handleNewClientChange}
-                                                    required
-                                                />
-                                                <Input
-                                                    type="text"
-                                                    name="client_phone"
-                                                    placeholder="Teléfono"
-                                                    value={newClient.client_phone}
-                                                    onChange={handleNewClientChange}
-                                                />
-                                                <Button type="submit">Crear Cliente</Button>
-                                            </form>
-                                            {successMessage && (
-                                                <div className="mt-2 text-green-600">
-                                                    {successMessage}
-                                                </div>
-                                            )}
-                                        </DialogContent>
-                                    </Dialog>
-                                </div>
-                            </div>
 
                             {cart.map((item) => (
                                 <div key={item.product.id} className="flex items-center justify-between border rounded-lg p-1 my-1">
