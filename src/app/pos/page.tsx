@@ -248,7 +248,13 @@ const ProductsPage = () => {
         }
     };
 
-
+// Función para manejar el clic en el botón "Cancelar"
+const handleCancel = () => {
+    setCart([]); // Limpiar el carrito
+    setSelectedClient(null); // Limpiar el cliente seleccionado
+    setSelectedPaymentMethod(null); // Limpiar el método de pago seleccionado
+    setPaymentMethodDetails([]); // Limpiar los detalles del método de pago
+};
 
     return (
         <div>
@@ -316,7 +322,7 @@ const ProductsPage = () => {
                                         value={selectedClient}
                                         onChange={setSelectedClient}
                                         placeholder="Buscar cliente"
-                                        className='w-full'
+                                        className='capitalize w-full'
                                     />
 
                                     <Dialog>
@@ -418,7 +424,7 @@ const ProductsPage = () => {
                                     value={selectedPaymentMethod}
                                     onChange={handlePaymentMethodChange}
                                     placeholder="Seleccionar método de pago"
-                                    className='w-full'
+                                    className='w-full capitalize'
                                 />
                             </div>
                             {paymentMethodDetails.length > 0 && (
@@ -447,8 +453,8 @@ const ProductsPage = () => {
                                 <p>${calculateTotal()}</p>
                             </div>
                             <div className="flex justify-end items-center space-x-1 mb-1">
-                                <Button>Cancelar</Button>
-                                <Button variant="destructive">Pagar</Button>
+                            <Button onClick={handleCancel}>Cancelar</Button> {/* Llama a la función handleCancel */}
+                            <Button variant="destructive">Pagar</Button>
                             </div>
                         </ScrollArea>
                     </div>
