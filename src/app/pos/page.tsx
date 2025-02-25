@@ -11,7 +11,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Minus, Plus, Trash2 } from 'lucide-react';
 import Select, { SingleValue } from 'react-select';
-import { Separator } from '@/components/ui/separator';
+import {AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,} from "@/components/ui/alert-dialog";
 
 const ProductsPage = () => {
     const [products, setProducts] = useState<Product[]>([]);
@@ -22,6 +22,8 @@ const ProductsPage = () => {
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]); // Usar la interfaz PaymentMethod
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<SingleValue<PaymentMethod> | null>(null);
     const [paymentMethodDetails, setPaymentMethodDetails] = useState<any[]>([]);
+    // Estado para el diálogo de confirmación
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
 
     // Estado para el formulario del nuevo cliente
     const [newClient, setNewClient] = useState({
@@ -248,13 +250,14 @@ const ProductsPage = () => {
         }
     };
 
-// Función para manejar el clic en el botón "Cancelar"
-const handleCancel = () => {
-    setCart([]); // Limpiar el carrito
-    setSelectedClient(null); // Limpiar el cliente seleccionado
-    setSelectedPaymentMethod(null); // Limpiar el método de pago seleccionado
-    setPaymentMethodDetails([]); // Limpiar los detalles del método de pago
-};
+    // Función para limpiar el carrito
+    const clearCart = () => {
+        setCart([]);
+        setSelectedClient(null);
+        setSelectedPaymentMethod(null);
+        setPaymentMethodDetails([]);
+        setIsDialogOpen(false); // Cerrar el diálogo después de limpiar
+    };
 
     return (
         <div>
@@ -418,7 +421,7 @@ const handleCancel = () => {
                                 <p className='font-semibold text-lg'>Tax:</p>
                                 <p>$0.00</p>
                             </div> */}
-                            <div className="flex justify-end items-center space-x-1 mb-1">
+                            <div className="space-y-4 mb-10">
                                 <Select
                                     options={paymentMethods}
                                     value={selectedPaymentMethod}
@@ -426,19 +429,19 @@ const handleCancel = () => {
                                     placeholder="Seleccionar método de pago"
                                     className='w-full capitalize'
                                 />
+                                {paymentMethodDetails.length > 0 && (
+                                    <div className="border-2 border-red-400 rounded-xl p-2">
+                                        <h1>Detalles del Método de Pago:</h1>
+                                        <ul>
+                                            {paymentMethodDetails.map((detail, index) => (
+                                                <li className='flex' key={index}>
+                                                    <p className='font-bold me-1'>{detail.payments_method_details_data_types}:</p> <p>{detail.payments_method_details_value}</p>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
                             </div>
-                            {paymentMethodDetails.length > 0 && (
-                                <div className="border-2 border-red-400 rounded-xl p-2">
-                                    <h1>Detalles del Método de Pago:</h1>
-                                    <ul>
-                                        {paymentMethodDetails.map((detail, index) => (
-                                            <li className='flex' key={index}>
-                                                <p className='font-bold me-1'>{detail.payments_method_details_data_types}:</p> <p>{detail.payments_method_details_value}</p>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
 
                             <div className="flex justify-end items-center space-x-1 mb-1">
                                 <p className='font-semibold text-lg'>Subtotal:</p>
@@ -453,8 +456,24 @@ const handleCancel = () => {
                                 <p>${calculateTotal()}</p>
                             </div>
                             <div className="flex justify-end items-center space-x-1 mb-1">
-                            <Button onClick={handleCancel}>Cancelar</Button> {/* Llama a la función handleCancel */}
-                            <Button variant="destructive">Pagar</Button>
+                                <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                                    <AlertDialogTrigger asChild>
+                                        <Button>Cancelar</Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Confirmar Cancelación</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                ¿Estás seguro de que deseas limpiar el carrito? Esta acción no se puede deshacer.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel onClick={() => setIsDialogOpen(false)}>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction onClick={clearCart}>Confirmar</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                                <Button variant="destructive">Pagar</Button>
                             </div>
                         </ScrollArea>
                     </div>
