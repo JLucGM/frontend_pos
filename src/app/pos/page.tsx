@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { API_URL } from '../../service/apiConfig';
 import { Product } from '@/types/Product'; // Asegúrate de que la ruta sea correcta
-import { Client } from '@/types/Product'; // Asegúrate de que la ruta sea correcta
+import { Client, PaymentMethod } from '@/types/Product'; // Asegúrate de que la ruta sea correcta
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, } from "@/components/ui/dialog"
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, } from "@/components/ui/card"
@@ -11,6 +11,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Minus, Plus, Trash2 } from 'lucide-react';
 import Select, { SingleValue } from 'react-select';
+import { Separator } from '@/components/ui/separator';
 
 const ProductsPage = () => {
     const [products, setProducts] = useState<Product[]>([]);
@@ -18,6 +19,10 @@ const ProductsPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedClient, setSelectedClient] = useState<SingleValue<{ value: number; label: string }> | null>(null); // Ajusta el tipo aquí
     const [clientOptions, setClientOptions] = useState<{ value: number; label: string }[]>([]);
+    const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]); // Usar la interfaz PaymentMethod
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<SingleValue<PaymentMethod> | null>(null);
+    const [paymentMethodDetails, setPaymentMethodDetails] = useState<any[]>([]);
+
     // Estado para el formulario del nuevo cliente
     const [newClient, setNewClient] = useState({
         client_name: '',
@@ -59,7 +64,7 @@ const ProductsPage = () => {
             try {
                 const response = await fetch(`${API_URL}client`);
                 const data = await response.json();
-                console.log(data);
+                // console.log(data);
                 // Verifica si data.client es un array
                 if (Array.isArray(data.client)) {
                     const options = data.client.map((client: Client) => ({
@@ -77,6 +82,36 @@ const ProductsPage = () => {
 
         fetchClients();
     }, []);
+
+    // Nueva función para obtener métodos de pago
+    useEffect(() => {
+        const fetchPaymentMethods = async () => {
+            try {
+                const response = await fetch(`${API_URL}payment-methods`);
+                const data = await response.json();
+                if (Array.isArray(data.paymentMethod)) {
+                    const options: PaymentMethod[] = data.paymentMethod.map((method: { id: number; payment_method_name: string; details: any[] }) => ({
+                        value: method.id,
+                        label: method.payment_method_name,
+                        details: method.details // Almacenar detalles aquí
+                    }));
+                    setPaymentMethods(options);
+                } else {
+                    console.error('La respuesta no contiene un array de métodos de pago');
+                }
+            } catch (error) {
+                console.error('Error al obtener los métodos de pago:', error);
+            }
+        };
+
+        fetchPaymentMethods();
+    }, []);
+
+    const handlePaymentMethodChange = (selectedOption: SingleValue<PaymentMethod>) => {
+        setSelectedPaymentMethod(selectedOption);
+        const selectedMethod = paymentMethods.find(method => method.value === selectedOption?.value);
+        setPaymentMethodDetails(selectedMethod ? selectedMethod.details : []); // Establecer detalles
+    };
 
     const fetchClients = async () => {
         try {
@@ -213,13 +248,15 @@ const ProductsPage = () => {
         }
     };
 
+
+
     return (
         <div>
             <div className=" bg-slate-500s max-h-screen">
                 <div className="grid grid-cols-3 px-5">
 
                     <div className="max-h-screen bg-red-400s col-span-full sm:col-span-full md:col-span-full lg:col-span-2 ">
-                        <ScrollArea className="h-full max-h-screen border-r-2 border-gray-200 bg-yellow-400d">
+                        <ScrollArea className="h-screen max-h-screen border-r-2 border-gray-200 bg-yellow-400d">
                             <div className="p-4  grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:gap-x-4">
                                 <Input className='capitalize col-span-full' type="text" placeholder='buscar producto (nombre, codigo de barra)' onChange={(e) => setSearchTerm(e.target.value)} />
                                 {products.filter(product => {
@@ -269,8 +306,8 @@ const ProductsPage = () => {
                         </ScrollArea>
                     </div>
 
-                    <div className="max-h-screen col-span-full sm:col-span-full md:col-span-full lg:col-span-1">
-                        <ScrollArea className='h-1/2 max-h-1/2s bg-green-800s p-2'>
+                    <div className="max-h-screen col-span-full sm:col-span-full md:col-span-full lg:col-span-1 p-4">
+                        <ScrollArea className='h-1/2 mb-8 '>
                             <div className="">
 
                                 <div className="flex">
@@ -369,11 +406,34 @@ const ProductsPage = () => {
 
                         </ScrollArea>
 
-                        <ScrollArea className='h-1/2 max-h-1/2 p-2'>
+
+                        <ScrollArea className='h-1/2'>
                             {/* <div className="flex justify-end items-center space-x-1 mb-1">
                                 <p className='font-semibold text-lg'>Tax:</p>
                                 <p>$0.00</p>
                             </div> */}
+                            <div className="flex justify-end items-center space-x-1 mb-1">
+                                <Select
+                                    options={paymentMethods}
+                                    value={selectedPaymentMethod}
+                                    onChange={handlePaymentMethodChange}
+                                    placeholder="Seleccionar método de pago"
+                                    className='w-full'
+                                />
+                            </div>
+                            {paymentMethodDetails.length > 0 && (
+                                <div className="border-2 border-red-400 rounded-xl p-2">
+                                    <h1>Detalles del Método de Pago:</h1>
+                                    <ul>
+                                        {paymentMethodDetails.map((detail, index) => (
+                                            <li className='flex' key={index}>
+                                                <p className='font-bold me-1'>{detail.payments_method_details_data_types}:</p> <p>{detail.payments_method_details_value}</p>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+
                             <div className="flex justify-end items-center space-x-1 mb-1">
                                 <p className='font-semibold text-lg'>Subtotal:</p>
                                 <p>${calculateSubtotal()}</p>

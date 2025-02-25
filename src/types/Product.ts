@@ -118,3 +118,8 @@ export interface Client {
   client_identification: number; // Identificación del cliente
   client_phone?: string; // Teléfono del cliente (opcional)
 }
+export interface PaymentMethod {
+  value: number;
+  label: string;
+  details: any[];
+}
