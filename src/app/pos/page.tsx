@@ -43,7 +43,7 @@ const ProductsPage = () => {
                     throw new Error('Error al obtener los productos');
                 }
                 const data = await response.json();
-                // console.log(data); // Verifica la respuesta
+                console.log(data); // Verifica la respuesta
 
                 // Ajusta esto según la estructura real de la respuesta
                 if (Array.isArray(data)) {
@@ -137,16 +137,29 @@ const ProductsPage = () => {
     const addToCart = (product: Product) => {
         setCart((prevCart) => {
             const existingProduct = prevCart.find(item => item.product.id === product.id);
+            const stockQuantity = parseInt(product.stocks[0]?.quantity, 10); // Convertir a número
+    
             if (existingProduct) {
                 // Si el producto ya está en el carrito, solo aumentamos la cantidad
-                return prevCart.map(item =>
-                    item.product.id === product.id
-                        ? { ...item, quantity: item.quantity + 1 }
-                        : item
-                );
+                const newQuantity = existingProduct.quantity + 1;
+                if (newQuantity <= stockQuantity) {
+                    return prevCart.map(item =>
+                        item.product.id === product.id
+                            ? { ...item, quantity: newQuantity }
+                            : item
+                    );
+                } else {
+                    alert(`No puedes agregar más de ${stockQuantity} unidades de ${product.product_name}.`);
+                    return prevCart; // No se modifica el carrito
+                }
             } else {
                 // Si no está, lo agregamos con cantidad 1
-                return [...prevCart, { product, quantity: 1 }];
+                if (stockQuantity > 0) {
+                    return [...prevCart, { product, quantity: 1 }];
+                } else {
+                    alert(`No hay stock disponible para ${product.product_name}.`);
+                    return prevCart; // No se modifica el carrito
+                }
             }
         });
     };
@@ -157,11 +170,19 @@ const ProductsPage = () => {
 
     const increaseQuantity = (productId: number) => {
         setCart((prevCart) =>
-            prevCart.map(item =>
-                item.product.id === productId
-                    ? { ...item, quantity: item.quantity + 1 }
-                    : item
-            )
+            prevCart.map(item => {
+                const stockQuantity = parseInt(item.product.stocks[0]?.quantity, 10); // Convertir a número
+                if (item.product.id === productId) {
+                    const newQuantity = item.quantity + 1;
+                    if (newQuantity <= stockQuantity) {
+                        return { ...item, quantity: newQuantity };
+                    } else {
+                        alert(`2No puedes aumentar la cantidad a más de ${stockQuantity} unidades de ${item.product.product_name}.`);
+                        return item; // No se modifica la cantidad
+                    }
+                }
+                return item;
+            })
         );
     };
 
