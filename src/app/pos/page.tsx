@@ -35,30 +35,27 @@ const ProductsPage = () => {
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     // console.log(selectedClient)
 
-    useEffect(() => {
-        const fetchProducts = async () => {
-            try {
-                const response = await fetch(`${API_URL}products`); // Asegúrate de que la URL sea correcta
-                if (!response.ok) {
-                    throw new Error('Error al obtener los productos');
-                }
-                const data = await response.json();
-                console.log(data); // Verifica la respuesta
-
-                // Ajusta esto según la estructura real de la respuesta
-                if (Array.isArray(data)) {
-                    setProducts(data);
-                } else if (data.products) {
-                    setProducts(data.products); // Ajusta según la estructura de tu API
-                } else {
-                    console.error('La respuesta no contiene un array de productos');
-                }
-            } catch (error) {
-                console.error(error);
+    const fetchProducts = async () => {
+        try {
+            const response = await fetch(`${API_URL}products`);
+            if (!response.ok) {
+                throw new Error('Error al obtener los productos');
             }
-        };
+            const data = await response.json();
+            if (Array.isArray(data)) {
+                setProducts(data);
+            } else if (data.products) {
+                setProducts(data.products);
+            } else {
+                console.error('La respuesta no contiene un array de productos');
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
 
-        fetchProducts();
+    useEffect(() => {
+        fetchProducts(); // Llama a fetchProducts al montar el componente
     }, []);
 
     useEffect(() => {
@@ -138,19 +135,19 @@ const ProductsPage = () => {
             alert("Por favor, selecciona un cliente, un método de pago y agrega productos al carrito.");
             return;
         }
-    
+
         const total = calculateTotal();
         const orderData = {
             client_id: selectedClient.value,
             payments_method_id: selectedPaymentMethod.value,
             total: total,
-            direction_delivery: "123 Main St, Springfield, IL", // Cambia esto por la dirección real si la tienes
+            direction_delivery: null, // Cambia esto por la dirección real si la tienes
             items: cart.map(item => ({
                 product_id: item.product.id,
                 quantity: item.quantity
             }))
         };
-    
+
         try {
             const response = await fetch(`${API_URL}orders`, {
                 method: 'POST',
@@ -159,17 +156,18 @@ const ProductsPage = () => {
                 },
                 body: JSON.stringify(orderData),
             });
-    
+
             if (!response.ok) {
                 throw new Error('Error al crear la orden');
             }
-    
+
             const result = await response.json();
             console.log('Orden creada:', result);
             alert('Orden creada exitosamente!');
-    
+
             // Limpiar el carrito después de crear la orden
             clearCart();
+            fetchProducts(); // Volver a obtener los productos
         } catch (error) {
             console.error('Error al crear la orden:', error);
             alert('Error al crear la orden. Por favor, intenta de nuevo.');
@@ -181,7 +179,7 @@ const ProductsPage = () => {
         setCart((prevCart) => {
             const existingProduct = prevCart.find(item => item.product.id === product.id);
             const stockQuantity = parseInt(product.stocks[0]?.quantity, 10); // Convertir a número
-    
+
             if (existingProduct) {
                 // Si el producto ya está en el carrito, solo aumentamos la cantidad
                 const newQuantity = existingProduct.quantity + 1;
