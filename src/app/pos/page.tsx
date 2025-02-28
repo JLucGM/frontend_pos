@@ -133,6 +133,49 @@ const ProductsPage = () => {
         }
     };
 
+    const createOrder = async () => {
+        if (!selectedClient || !selectedPaymentMethod || cart.length === 0) {
+            alert("Por favor, selecciona un cliente, un método de pago y agrega productos al carrito.");
+            return;
+        }
+    
+        const total = calculateTotal();
+        const orderData = {
+            client_id: selectedClient.value,
+            payments_method_id: selectedPaymentMethod.value,
+            total: total,
+            direction_delivery: "123 Main St, Springfield, IL", // Cambia esto por la dirección real si la tienes
+            items: cart.map(item => ({
+                product_id: item.product.id,
+                quantity: item.quantity
+            }))
+        };
+    
+        try {
+            const response = await fetch(`${API_URL}orders`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(orderData),
+            });
+    
+            if (!response.ok) {
+                throw new Error('Error al crear la orden');
+            }
+    
+            const result = await response.json();
+            console.log('Orden creada:', result);
+            alert('Orden creada exitosamente!');
+    
+            // Limpiar el carrito después de crear la orden
+            clearCart();
+        } catch (error) {
+            console.error('Error al crear la orden:', error);
+            alert('Error al crear la orden. Por favor, intenta de nuevo.');
+        }
+    };
+
 
     const addToCart = (product: Product) => {
         setCart((prevCart) => {
@@ -343,7 +386,7 @@ const ProductsPage = () => {
                                 value={selectedClient}
                                 onChange={setSelectedClient}
                                 placeholder="Buscar cliente"
-                                className='capitalize w-full'
+                                className='w-full capitalize dark:text-black'
                             />
 
                             <Dialog>
@@ -446,7 +489,7 @@ const ProductsPage = () => {
                                     value={selectedPaymentMethod}
                                     onChange={handlePaymentMethodChange}
                                     placeholder="Seleccionar método de pago"
-                                    className='w-full capitalize'
+                                    className='w-full capitalize dark:text-black'
                                 />
                                 {paymentMethodDetails.length > 0 && (
                                     <div className="border-2 border-red-400 rounded-xl p-2">
@@ -492,8 +535,7 @@ const ProductsPage = () => {
                                         </AlertDialogFooter>
                                     </AlertDialogContent>
                                 </AlertDialog>
-                                <Button variant="destructive">Pagar</Button>
-                            </div>
+                                <Button variant="destructive" onClick={createOrder}>Pagar</Button>                            </div>
                         </ScrollArea>
                     </div>
 
