@@ -15,7 +15,7 @@ export const login = async (email: string, password: string) => {
         if (response.data && response.data.token) {
             // Aquí se asume que la API devuelve un token
             const token = response.data.token; // Usa el token devuelto por la API
-
+console.log('Token:', token);
             // Generar un nuevo token JWT (si es necesario)
             const jwtToken = jwt.sign(
                 { email }, // Solo incluye el email en el payload
@@ -48,6 +48,7 @@ export const login = async (email: string, password: string) => {
 
 export const logout = async () => {
     const token = localStorage.getItem('token');
+    console.log('Token:', token);
     const response = await axios.post(`${API_URL}logout`, {}, {
         headers: {
             Authorization: `Bearer ${token}`,

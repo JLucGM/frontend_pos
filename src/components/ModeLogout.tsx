@@ -13,14 +13,13 @@ export function ModeLogout() {
     const handleLogout = async () => {
         try {
             await logout();
-            // Aquí puedes manejar la redirección o el estado de la aplicación después del logout
-            console.log('Logout exitoso');
-            // Por ejemplo, redirigir a la página de inicio o a la página de login
-            router.push('/'); // Cambia esto según tu ruta de login
-        } catch (error) {
-            console.error('Error al cerrar sesión:', error);
+            // Redirigir o hacer algo después de cerrar sesión
+            window.location.href = '/'; // Redirigir a la página de inicio de sesión
+        } catch (err) {
+            console.error('Error al cerrar sesión:', err);
         }
     };
+
     return (
         <Button variant="destructive" onClick={handleLogout} >
             <LogOutIcon className="w-6 h-6" />
