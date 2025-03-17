@@ -25,6 +25,8 @@ export interface Category {
 export interface Stock {
   id: number;
   quantity: string;
+  product_barcode: string; // Agregar esta línea
+  combination_id: number | null; // Agregar esta línea
   product_id: number;
   store_id: number;
   created_at: string;
@@ -95,7 +97,7 @@ export interface Product {
   slug: string;
   product_description: string;
   product_price: string;
-  product_barcode: string;
+  product_barcode: string | null;
   product_sku: string;
   product_price_discount: string;
   status: number;
@@ -122,4 +124,12 @@ export interface PaymentMethod {
   value: number;
   label: string;
   details: any[];
+}
+
+export interface CartItem {
+  product: Product;
+  combination?: Combination;
+  productId: string;
+  quantity: number;
+  price: string; // Asegúrate de incluir esta propiedad
 }

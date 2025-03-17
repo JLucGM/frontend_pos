@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { API_URL } from '../../service/apiConfig';
-import { Product } from '@/types/Product'; // Asegúrate de que la ruta sea correcta
+import { CartItem, Combination, Product } from '@/types/Product'; // Asegúrate de que la ruta sea correcta
 import { Client, PaymentMethod } from '@/types/Product'; // Asegúrate de que la ruta sea correcta
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, } from "@/components/ui/dialog"
 import { Input } from '@/components/ui/input';
@@ -15,7 +15,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 
 const ProductsPage = () => {
     const [products, setProducts] = useState<Product[]>([]);
-    const [cart, setCart] = useState<{ product: Product; quantity: number }[]>([]); // Estado para el carrito con cantidad
+    const [cart, setCart] = useState<CartItem[]>([]); // Estado del carrito    
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedClient, setSelectedClient] = useState<SingleValue<{ value: number; label: string }> | null>(null); // Ajusta el tipo aquí
     const [clientOptions, setClientOptions] = useState<{ value: number; label: string }[]>([]);
@@ -42,6 +42,7 @@ const ProductsPage = () => {
                 throw new Error('Error al obtener los productos');
             }
             const data = await response.json();
+            console.log(data)
             if (Array.isArray(data)) {
                 setProducts(data);
             } else if (data.products) {
@@ -135,19 +136,29 @@ const ProductsPage = () => {
             alert("Por favor, selecciona un cliente, un método de pago y agrega productos al carrito.");
             return;
         }
-
-        const total = calculateTotal();
+    
+        const total = calculateTotal(); // Asegúrate de que esta función esté bien definida
         const orderData = {
             client_id: selectedClient.value,
             payments_method_id: selectedPaymentMethod.value,
             total: total,
             direction_delivery: null, // Cambia esto por la dirección real si la tienes
-            items: cart.map(item => ({
-                product_id: item.product.id,
-                quantity: item.quantity
-            }))
+            items: cart.map(item => {
+                const price = item.combination
+                    ? parseFloat(item.combination.combination_price) // Precio de la combinación
+                    : (item.product.product_price_discount
+                        ? parseFloat(item.product.product_price_discount) // Precio con descuento
+                        : parseFloat(item.product.product_price)); // Precio base
+    
+                return {
+                    product_id: item.product.id,
+                    combination_id: item.combination ? item.combination.id : null, // Usa null si no hay combinación
+                    quantity: item.quantity,
+                    price: price // Incluye el precio correcto
+                };
+            })
         };
-
+    
         try {
             const response = await fetch(`${API_URL}orders`, {
                 method: 'POST',
@@ -156,15 +167,15 @@ const ProductsPage = () => {
                 },
                 body: JSON.stringify(orderData),
             });
-
+    
             if (!response.ok) {
                 throw new Error('Error al crear la orden');
             }
-
+    
             const result = await response.json();
             console.log('Orden creada:', result);
             alert('Orden creada exitosamente!');
-
+    
             // Limpiar el carrito después de crear la orden
             clearCart();
             fetchProducts(); // Volver a obtener los productos
@@ -174,18 +185,20 @@ const ProductsPage = () => {
         }
     };
 
-
-    const addToCart = (product: Product) => {
+    const addToCart = (product: Product, combination?: Combination) => {
         setCart((prevCart) => {
-            const existingProduct = prevCart.find(item => item.product.id === product.id);
-            const stockQuantity = parseInt(product.stocks[0]?.quantity, 10); // Convertir a número
-
+            const productId = combination ? `${product.id}-${combination.id}` : `${product.id}`;
+            const existingProduct = prevCart.find(item => item.productId === productId);
+            const stockQuantity = combination
+                ? parseInt(product.stocks.find(stock => stock.combination_id === combination.id)?.quantity || '0', 10)
+                : parseInt(product.stocks[0]?.quantity || '0', 10);
+    
             if (existingProduct) {
                 // Si el producto ya está en el carrito, solo aumentamos la cantidad
                 const newQuantity = existingProduct.quantity + 1;
                 if (newQuantity <= stockQuantity) {
                     return prevCart.map(item =>
-                        item.product.id === product.id
+                        item.productId === productId
                             ? { ...item, quantity: newQuantity }
                             : item
                     );
@@ -196,7 +209,11 @@ const ProductsPage = () => {
             } else {
                 // Si no está, lo agregamos con cantidad 1
                 if (stockQuantity > 0) {
-                    return [...prevCart, { product, quantity: 1 }];
+                    const price = combination
+                        ? combination.combination_price // Precio de la combinación
+                        : product.product_price; // Precio base del producto
+    
+                    return [...prevCart, { product, combination, productId, quantity: 1, price }];
                 } else {
                     alert(`No hay stock disponible para ${product.product_name}.`);
                     return prevCart; // No se modifica el carrito
@@ -205,20 +222,23 @@ const ProductsPage = () => {
         });
     };
 
-    const removeFromCart = (productId: number) => {
-        setCart((prevCart) => prevCart.filter(item => item.product.id !== productId));
+    const removeFromCart = (productId: number, combinationId?: number) => {
+        setCart((prevCart) => prevCart.filter(item => item.product.id !== productId || (combinationId && item.combination?.id !== combinationId)));
     };
 
-    const increaseQuantity = (productId: number) => {
+    const increaseQuantity = (productId: number, combinationId?: number) => {
         setCart((prevCart) =>
             prevCart.map(item => {
-                const stockQuantity = parseInt(item.product.stocks[0]?.quantity, 10); // Convertir a número
-                if (item.product.id === productId) {
+                const stockQuantity = item.combination
+                    ? parseInt(item.product.stocks.find(stock => stock.combination_id === item.combination?.id)?.quantity || '0', 10)
+                    : parseInt(item.product.stocks[0]?.quantity || '0', 10);
+    
+                if (item.product.id === productId && item.combination?.id === combinationId) {
                     const newQuantity = item.quantity + 1;
                     if (newQuantity <= stockQuantity) {
                         return { ...item, quantity: newQuantity };
                     } else {
-                        alert(`2No puedes aumentar la cantidad a más de ${stockQuantity} unidades de ${item.product.product_name}.`);
+                        alert(`No puedes aumentar la cantidad a más de ${stockQuantity} unidades de ${item.product.product_name}.`);
                         return item; // No se modifica la cantidad
                     }
                 }
@@ -227,17 +247,17 @@ const ProductsPage = () => {
         );
     };
 
-    const decreaseQuantity = (productId: number) => {
+    const decreaseQuantity = (productId: number, combinationId?: number) => {
         setCart((prevCart) => {
-            const existingProduct = prevCart.find(item => item.product.id === productId);
+            const existingProduct = prevCart.find(item => item.product.id === productId && item.combination?.id === combinationId);
             if (existingProduct && existingProduct.quantity > 1) {
                 return prevCart.map(item =>
-                    item.product.id === productId
+                    item.product.id === productId && item.combination?.id === combinationId
                         ? { ...item, quantity: item.quantity - 1 }
                         : item
                 );
             } else {
-                return prevCart.filter(item => item.product.id !== productId);
+                return prevCart.filter(item => item.product.id !== productId || (combinationId && item.combination?.id !== combinationId));
             }
         });
     };
@@ -245,7 +265,9 @@ const ProductsPage = () => {
     // Función para calcular el subtotal del carrito
     const calculateSubtotal = () => {
         return cart.reduce((subtotal, item) => {
-            const price = parseFloat(item.product.product_price); // Usar el precio base
+            const price = item.combination
+                ? parseFloat(item.combination.combination_price) // Precio de la combinación
+                : parseFloat(item.product.product_price); // Precio base
             return subtotal + price * item.quantity;
         }, 0).toFixed(2); // Formatear a dos decimales
     };
@@ -268,10 +290,37 @@ const ProductsPage = () => {
     };
 
     // Filtrar productos según el término de búsqueda
-    const filteredProducts = products.filter(product => {
+    const filteredProducts = products.flatMap(product => {
         const productNameMatch = product.product_name.toLowerCase().includes(searchTerm.toLowerCase());
-        const productBarcodeMatch = product.product_barcode != null && product.product_barcode.toString().includes(searchTerm);
-        return productNameMatch || productBarcodeMatch;
+        
+        const productBarcodeMatch = product.stocks.some(stock => 
+            stock.product_barcode && stock.product_barcode.toString().includes(searchTerm)
+        );
+    
+        const matchingCombinations = product.combinations.flatMap(combination =>
+            product.stocks
+                .filter(stock => 
+                    stock.combination_id === combination.id && 
+                    stock.product_barcode && 
+                    stock.product_barcode.toString().includes(searchTerm)
+                )
+                .map(stock => ({ ...product, combinations: [combination], stocks: [stock] }))
+        );
+    
+        if (productNameMatch) {
+            return [product];
+        } else if (productBarcodeMatch) {
+            return product.stocks
+                .filter(stock => 
+                    stock.product_barcode && 
+                    stock.product_barcode.toString().includes(searchTerm)
+                )
+                .map(stock => ({ ...product, combinations: [], stocks: [stock] }));
+        } else if (matchingCombinations.length > 0) {
+            return matchingCombinations;
+        } else {
+            return [];
+        }
     });
 
     const handleNewClientChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -326,51 +375,73 @@ const ProductsPage = () => {
             <div className=" bg-slate-500s max-h-screen">
                 <div className="grid grid-cols-3 px-5">
 
-                    <div className="max-h-screen bg-red-400s col-span-full sm:col-span-full md:col-span-full lg:col-span-2 ">
+                    <div className="max-h-screen col-span-full sm:col-span-full md:col-span-full lg:col-span-2 ">
                         <Input className='capitalize my-4' type="text" placeholder='buscar producto (nombre, codigo de barra)' onChange={(e) => setSearchTerm(e.target.value)} />
                         <ScrollArea className="h-screen max-h-screen border-r-2 border-gray-200 ">
-                            <div className="px-4 grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:gap-x-4">
-                                {products.filter(product => {
-                                    const productNameMatch = product.product_name.toLowerCase().includes(searchTerm.toLowerCase());
-                                    const productBarcodeMatch = product.product_barcode != null && product.product_barcode.toString().includes(searchTerm);
-                                    return productNameMatch || productBarcodeMatch;
-                                }).map((product) => (
-                                    <button key={product.id} onClick={() => addToCart(product)}>
-                                        <Card className="h-full">
-                                            <CardHeader className='p-0'>
-                                                {product.media.length > 0 && (
-                                                    <div key={product.media[0].id}>
-                                                        <img
-                                                            src={product.media[0].original_url}
-                                                            alt={product.media[0].name}
-                                                            className="aspect-square w-full max-h-48 rounded-lg bsg-gray-200 object-cover group-hover:opacity-75 lg:aspect-auto lg:h-60"
-                                                        />
-                                                    </div>
-                                                )}
-                                            </CardHeader>
-                                            <CardContent className='py-0'>
-                                                <CardTitle className='capitalize text-md line-clamp-2'>{product.product_name}</CardTitle>
-                                                <CardDescription>{product.product_barcode}</CardDescription>
-                                            </CardContent>
-                                            <CardFooter className='py-0 space-x-2 justify-center'>
-                                                {product.product_price_discount ? (
-                                                    <>
-                                                        <span className="block">
-                                                            ${product.product_price_discount}
-                                                        </span>
-                                                        <span className="block line-through text-sm">
+                            <div className="px-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:gap-x-6">
+                                {filteredProducts.map((product) => (
+                                    product.combinations.length > 0 ? (
+                                        product.combinations.map((combination) => (
+                                            <button key={combination.id} onClick={() => addToCart(product, combination)}>
+                                                <Card className="h-full">
+                                                    <CardHeader className='p-0'>
+                                                        {product.media.length > 0 && (
+                                                            <div key={product.media[0].id}>
+                                                                <img
+                                                                    src={product.media[0].original_url}
+                                                                    alt={product.media[0].name}
+                                                                    className="aspect-square w-full max-h-36 rounded-lg bsg-gray-200 object-cover group-hover:opacity-75 lg:aspect-auto lg:h-36"
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </CardHeader>
+                                                    <CardContent className='py-0'>
+                                                        <CardTitle className='capitalize text-sm line-clamp-2'>{product.product_name} - {combination.combination_attribute_value.map(attr => attr.attribute_value.attribute_value_name).join(', ')}</CardTitle>
+                                                        <CardDescription># {product.stocks.find(stock => stock.combination_id === combination.id)?.product_barcode || 'N/A'}</CardDescription>
+                                                    </CardContent>
+                                                    <CardFooter className='py-0 space-x-2 justify-center'>
+                                                    ${combination.combination_price}
+                                                    </CardFooter>
+                                                </Card>
+                                            </button>
+                                        ))
+                                    ) : (
+                                        <button key={product.id} onClick={() => addToCart(product)}>
+                                            <Card className="h-full">
+                                                <CardHeader className='p-0'>
+                                                    {product.media.length > 0 && (
+                                                        <div key={product.media[0].id}>
+                                                            <img
+                                                                src={product.media[0].original_url}
+                                                                alt={product.media[0].name}
+                                                                className="aspect-square w-full max-h-36 rounded-lg bsg-gray-200 object-cover group-hover:opacity-75 lg:aspect-auto lg:h-36"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </CardHeader>
+                                                <CardContent className='py-0'>
+                                                    <CardTitle className='capitalize text-md line-clamp-2'>{product.product_name}</CardTitle>
+                                                    <CardDescription># {product.stocks[0]?.product_barcode || 'N/A'}</CardDescription>
+                                                </CardContent>
+                                                <CardFooter className='py-0 space-x-2 justify-center'>
+                                                    {product.product_price_discount ? (
+                                                        <>
+                                                            <span className="block">
+                                                                ${product.product_price_discount}
+                                                            </span>
+                                                            <span className="block line-through text-sm">
+                                                                ${product.product_price}
+                                                            </span>
+                                                        </>
+                                                    ) : (
+                                                        <span>
                                                             ${product.product_price}
                                                         </span>
-                                                    </>
-                                                ) : (
-                                                    <span>
-                                                        ${product.product_price}
-                                                    </span>
-                                                )}
-
-                                            </CardFooter>
-                                        </Card>
-                                    </button>
+                                                    )}
+                                                </CardFooter>
+                                            </Card>
+                                        </button>
+                                    )
                                 ))}
 
                             </div>
@@ -434,38 +505,53 @@ const ProductsPage = () => {
                         </div>
                         <ScrollArea className='h-1/2 mb-8 '>
 
-
                             {cart.map((item) => (
-                                <div key={item.product.id} className="flex items-center justify-between border rounded-lg p-1 my-1">
+                                <div key={item.product.id + (item.combination ? '-' + item.combination.id : '')} className="flex items-center justify-between border rounded-lg p-1 my-1">
                                     <div className="max-w-[80px]">
                                         <img src={item.product.media[0]?.original_url || "https://placehold.co/50x50"} alt={item.product.product_name}
                                             className="aspect-square w-full border rounded-lg bsg-gray-200 object-cover group-hover:opacity-75 lg:aspect-auto min-w-[80px] max-h-[80px] h-20"
                                         />
                                     </div>
-                                    <div >
-                                        <p className='capitalize text-sm line-clamp-2 px-2'>{item.product.product_name}</p>
+                                    <div>
+                                        <p className='capitalize text-sm line-clamp-2 px-2'>{item.product.product_name} {item.combination && `- ${item.combination.combination_attribute_value.map(attr => attr.attribute_value.attribute_value_name).join(', ')}`}</p>
                                     </div>
                                     <div className="text-center">
                                         <p className='font-semibold text-destructive'>
-                                            {item.product.product_price_discount ? (
+                                            {item.combination ? (
                                                 <>
                                                     <span className="">
-                                                        ${item.product.product_price_discount}
+                                                        ${item.price} {/* Precio de la combinación */}
                                                     </span>
-                                                    <span className="ms-2 line-through text-sm">
-                                                        ${item.product.product_price}
-                                                    </span>
+                                                    {item.product.product_price_discount && (
+                                                        <span className="ms-2 line-through text-sm">
+                                                            ${item.product.product_price}
+                                                        </span>
+                                                    )}
                                                 </>
                                             ) : (
-                                                <span>
-                                                    ${item.product.product_price}
-                                                </span>
-                                            )}                                        </p>
+                                                <>
+                                                    {item.product.product_price_discount ? (
+                                                        <>
+                                                            <span className="">
+                                                                ${item.product.product_price_discount}
+                                                            </span>
+                                                            <span className="ms-2 line-through text-sm">
+                                                                ${item.product.product_price}
+                                                            </span>
+                                                        </>
+                                                    ) : (
+                                                        <span>
+                                                            ${item.product.product_price}
+                                                        </span>
+                                                    )}
+                                                </>
+                                            )}
+                                        </p>
                                         <div className="flex items-center">
-                                            <Button className='rounded-full' size={"sm"} variant="default" onClick={() => decreaseQuantity(item.product.id)}><Minus /></Button>
+                                            <Button className='rounded-full' size={"sm"} variant="default" onClick={() => decreaseQuantity(item.product.id, item.combination?.id)}>−</Button>
                                             <span className="mx-2">{item.quantity}</span>
-                                            <Button className='rounded-full' size={"sm"} variant="default" onClick={() => increaseQuantity(item.product.id)}><Plus /></Button>
-                                            <Button className='ms-1 rounded-full' variant="destructive" onClick={() => removeFromCart(item.product.id)}>
+                                            <Button className='rounded-full' size={"sm"} variant="default" onClick={() => increaseQuantity(item.product.id, item.combination?.id)}>+</Button>
+                                            <Button className='ms-1 rounded-full' variant="destructive" onClick={() => removeFromCart(item.product.id, item.combination?.id)}>
                                                 <Trash2 />
                                             </Button>
                                         </div>
@@ -474,7 +560,6 @@ const ProductsPage = () => {
                             ))}
 
                         </ScrollArea>
-
 
                         <ScrollArea className='h-1/2'>
                             {/* <div className="flex justify-end items-center space-x-1 mb-1">
@@ -533,7 +618,8 @@ const ProductsPage = () => {
                                         </AlertDialogFooter>
                                     </AlertDialogContent>
                                 </AlertDialog>
-                                <Button variant="destructive" onClick={createOrder}>Pagar</Button>                            </div>
+                                <Button variant="destructive" onClick={createOrder}>Pagar</Button>
+                            </div>
                         </ScrollArea>
                     </div>
 
