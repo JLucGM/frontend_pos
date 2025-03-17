@@ -23,6 +23,7 @@ const ProductsPage = () => {
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<SingleValue<PaymentMethod> | null>(null);
     const [paymentMethodDetails, setPaymentMethodDetails] = useState<any[]>([]);
     // Estado para el diálogo de confirmación
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
 
     // Estado para el formulario del nuevo cliente
@@ -32,7 +33,6 @@ const ProductsPage = () => {
         client_phone: ''
     });
     // Estado para el mensaje de éxito
-    const [successMessage, setSuccessMessage] = useState<string | null>(null);
     // console.log(selectedClient)
 
     const fetchProducts = async () => {
@@ -136,7 +136,7 @@ const ProductsPage = () => {
             alert("Por favor, selecciona un cliente, un método de pago y agrega productos al carrito.");
             return;
         }
-    
+
         const total = calculateTotal(); // Asegúrate de que esta función esté bien definida
         const orderData = {
             client_id: selectedClient.value,
@@ -149,7 +149,7 @@ const ProductsPage = () => {
                     : (item.product.product_price_discount
                         ? parseFloat(item.product.product_price_discount) // Precio con descuento
                         : parseFloat(item.product.product_price)); // Precio base
-    
+
                 return {
                     product_id: item.product.id,
                     combination_id: item.combination ? item.combination.id : null, // Usa null si no hay combinación
@@ -158,7 +158,7 @@ const ProductsPage = () => {
                 };
             })
         };
-    
+
         try {
             const response = await fetch(`${API_URL}orders`, {
                 method: 'POST',
@@ -167,15 +167,15 @@ const ProductsPage = () => {
                 },
                 body: JSON.stringify(orderData),
             });
-    
+
             if (!response.ok) {
                 throw new Error('Error al crear la orden');
             }
-    
+
             const result = await response.json();
             console.log('Orden creada:', result);
             alert('Orden creada exitosamente!');
-    
+
             // Limpiar el carrito después de crear la orden
             clearCart();
             fetchProducts(); // Volver a obtener los productos
@@ -192,7 +192,7 @@ const ProductsPage = () => {
             const stockQuantity = combination
                 ? parseInt(product.stocks.find(stock => stock.combination_id === combination.id)?.quantity || '0', 10)
                 : parseInt(product.stocks[0]?.quantity || '0', 10);
-    
+
             if (existingProduct) {
                 // Si el producto ya está en el carrito, solo aumentamos la cantidad
                 const newQuantity = existingProduct.quantity + 1;
@@ -212,7 +212,7 @@ const ProductsPage = () => {
                     const price = combination
                         ? combination.combination_price // Precio de la combinación
                         : product.product_price; // Precio base del producto
-    
+
                     return [...prevCart, { product, combination, productId, quantity: 1, price }];
                 } else {
                     alert(`No hay stock disponible para ${product.product_name}.`);
@@ -232,7 +232,7 @@ const ProductsPage = () => {
                 const stockQuantity = item.combination
                     ? parseInt(item.product.stocks.find(stock => stock.combination_id === item.combination?.id)?.quantity || '0', 10)
                     : parseInt(item.product.stocks[0]?.quantity || '0', 10);
-    
+
                 if (item.product.id === productId && item.combination?.id === combinationId) {
                     const newQuantity = item.quantity + 1;
                     if (newQuantity <= stockQuantity) {
@@ -292,27 +292,27 @@ const ProductsPage = () => {
     // Filtrar productos según el término de búsqueda
     const filteredProducts = products.flatMap(product => {
         const productNameMatch = product.product_name.toLowerCase().includes(searchTerm.toLowerCase());
-        
-        const productBarcodeMatch = product.stocks.some(stock => 
+
+        const productBarcodeMatch = product.stocks.some(stock =>
             stock.product_barcode && stock.product_barcode.toString().includes(searchTerm)
         );
-    
+
         const matchingCombinations = product.combinations.flatMap(combination =>
             product.stocks
-                .filter(stock => 
-                    stock.combination_id === combination.id && 
-                    stock.product_barcode && 
+                .filter(stock =>
+                    stock.combination_id === combination.id &&
+                    stock.product_barcode &&
                     stock.product_barcode.toString().includes(searchTerm)
                 )
                 .map(stock => ({ ...product, combinations: [combination], stocks: [stock] }))
         );
-    
+
         if (productNameMatch) {
             return [product];
         } else if (productBarcodeMatch) {
             return product.stocks
-                .filter(stock => 
-                    stock.product_barcode && 
+                .filter(stock =>
+                    stock.product_barcode &&
                     stock.product_barcode.toString().includes(searchTerm)
                 )
                 .map(stock => ({ ...product, combinations: [], stocks: [stock] }));
@@ -350,7 +350,7 @@ const ProductsPage = () => {
             // Limpiar la selección del cliente
             setSelectedClient(null); // Limpiar el campo de selección
             // Mostrar mensaje de éxito
-            setSuccessMessage(`Cliente ${createdClient.client_name} creado exitosamente!`);
+            setSuccessMessage(`Cliente creado exitosamente!`);
             // Limpiar el mensaje después de 3 segundos
             setTimeout(() => setSuccessMessage(null), 3000);
 
@@ -379,10 +379,10 @@ const ProductsPage = () => {
                         <Input className='capitalize my-4' type="text" placeholder='buscar producto (nombre, codigo de barra)' onChange={(e) => setSearchTerm(e.target.value)} />
                         <ScrollArea className="h-screen max-h-screen border-r-2 border-gray-200 ">
                             <div className="px-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:gap-x-6">
-                                {filteredProducts.map((product) => (
+                                {filteredProducts.map((product, productIndex) => (
                                     product.combinations.length > 0 ? (
-                                        product.combinations.map((combination) => (
-                                            <button key={combination.id} onClick={() => addToCart(product, combination)}>
+                                        product.combinations.map((combination, combinationIndex) => (
+                                            <button key={`${product.id}-${combination.id}-${combinationIndex}`} onClick={() => addToCart(product, combination)}>
                                                 <Card className="h-full">
                                                     <CardHeader className='p-0'>
                                                         {product.media.length > 0 && (
@@ -400,13 +400,13 @@ const ProductsPage = () => {
                                                         <CardDescription># {product.stocks.find(stock => stock.combination_id === combination.id)?.product_barcode || 'N/A'}</CardDescription>
                                                     </CardContent>
                                                     <CardFooter className='py-0 space-x-2 justify-center'>
-                                                    ${combination.combination_price}
+                                                        ${combination.combination_price}
                                                     </CardFooter>
                                                 </Card>
                                             </button>
                                         ))
                                     ) : (
-                                        <button key={product.id} onClick={() => addToCart(product)}>
+                                        <button key={`${product.id}-${productIndex}`} onClick={() => addToCart(product)}>
                                             <Card className="h-full">
                                                 <CardHeader className='p-0'>
                                                     {product.media.length > 0 && (
