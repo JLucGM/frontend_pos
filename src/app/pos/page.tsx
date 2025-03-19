@@ -32,7 +32,6 @@ const ProductsPage = () => {
         client_identification: '',
         client_phone: ''
     });
-    // Estado para el mensaje de éxito
     // console.log(selectedClient)
 
     const fetchProducts = async () => {
@@ -42,7 +41,7 @@ const ProductsPage = () => {
                 throw new Error('Error al obtener los productos');
             }
             const data = await response.json();
-            console.log(data)
+            // console.log(data)
             if (Array.isArray(data)) {
                 setProducts(data);
             } else if (data.products) {
@@ -137,24 +136,37 @@ const ProductsPage = () => {
             return;
         }
 
+        // const subtotal = calculateSubtotal(); // Asegúrate de que esta función esté bien definida
         const total = calculateTotal(); // Asegúrate de que esta función esté bien definida
+
         const orderData = {
             client_id: selectedClient.value,
             payments_method_id: selectedPaymentMethod.value,
             total: total,
+            order_origin: "point of sale - shop location", // Cambia esto por la dirección real si la tienes
             direction_delivery: null, // Cambia esto por la dirección real si la tienes
             items: cart.map(item => {
+                // Determinar el precio a enviar
                 const price = item.combination
                     ? parseFloat(item.combination.combination_price) // Precio de la combinación
                     : (item.product.product_price_discount
                         ? parseFloat(item.product.product_price_discount) // Precio con descuento
                         : parseFloat(item.product.product_price)); // Precio base
 
+                // Construir el campo details si hay combinación
+                const details = item.combination
+                    ? item.combination.combination_attribute_value.reduce((acc: Record<string, string>, attrValue) => {
+                        acc[attrValue.attribute_value.attribute.attribute_name] = attrValue.attribute_value.attribute_value_name;
+                        return acc;
+                    }, {} as Record<string, string>)
+                    : null;
+
                 return {
                     product_id: item.product.id,
                     combination_id: item.combination ? item.combination.id : null, // Usa null si no hay combinación
                     quantity: item.quantity,
-                    price: price // Incluye el precio correcto
+                    price: price, // Incluye el precio correcto
+                    details: details // Incluye los detalles de los atributos
                 };
             })
         };
@@ -173,7 +185,7 @@ const ProductsPage = () => {
             }
 
             const result = await response.json();
-            console.log('Orden creada:', result);
+            // console.log('Orden creada:', result);
             alert('Orden creada exitosamente!');
 
             // Limpiar el carrito después de crear la orden
@@ -548,9 +560,13 @@ const ProductsPage = () => {
                                             )}
                                         </p>
                                         <div className="flex items-center">
-                                            <Button className='rounded-full' size={"sm"} variant="default" onClick={() => decreaseQuantity(item.product.id, item.combination?.id)}>−</Button>
+                                            <Button className='rounded-full' size={"sm"} variant="default" onClick={() => decreaseQuantity(item.product.id, item.combination?.id)}>
+                                            <Minus />
+                                            </Button>
                                             <span className="mx-2">{item.quantity}</span>
-                                            <Button className='rounded-full' size={"sm"} variant="default" onClick={() => increaseQuantity(item.product.id, item.combination?.id)}>+</Button>
+                                            <Button className='rounded-full' size={"sm"} variant="default" onClick={() => increaseQuantity(item.product.id, item.combination?.id)}>
+                                                <Plus />
+                                                </Button>
                                             <Button className='ms-1 rounded-full' variant="destructive" onClick={() => removeFromCart(item.product.id, item.combination?.id)}>
                                                 <Trash2 />
                                             </Button>
