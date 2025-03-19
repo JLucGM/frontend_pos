@@ -136,12 +136,16 @@ const ProductsPage = () => {
             return;
         }
 
-        // const subtotal = calculateSubtotal(); // Asegúrate de que esta función esté bien definida
+        const totaldiscounts = calculateTotalDiscounts(); // Asegúrate de que esta función esté bien definida
+        const subtotal = calculateSubtotal(); // Asegúrate de que esta función esté bien definida
         const total = calculateTotal(); // Asegúrate de que esta función esté bien definida
-
+        // console.log("totaldiscounts", totaldiscounts)
+        
         const orderData = {
             client_id: selectedClient.value,
             payments_method_id: selectedPaymentMethod.value,
+            totaldiscounts: totaldiscounts,
+            subtotal: subtotal,
             total: total,
             order_origin: "point of sale - shop location", // Cambia esto por la dirección real si la tienes
             direction_delivery: null, // Cambia esto por la dirección real si la tienes
@@ -561,12 +565,12 @@ const ProductsPage = () => {
                                         </p>
                                         <div className="flex items-center">
                                             <Button className='rounded-full' size={"sm"} variant="default" onClick={() => decreaseQuantity(item.product.id, item.combination?.id)}>
-                                            <Minus />
+                                                <Minus />
                                             </Button>
                                             <span className="mx-2">{item.quantity}</span>
                                             <Button className='rounded-full' size={"sm"} variant="default" onClick={() => increaseQuantity(item.product.id, item.combination?.id)}>
                                                 <Plus />
-                                                </Button>
+                                            </Button>
                                             <Button className='ms-1 rounded-full' variant="destructive" onClick={() => removeFromCart(item.product.id, item.combination?.id)}>
                                                 <Trash2 />
                                             </Button>
