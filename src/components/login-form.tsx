@@ -41,26 +41,30 @@ export function LoginForm({
   })
 
   const onSubmit = async (values: z.infer<typeof loginSchema>) => {
-    // e.preventDefault();
-    console.log('Email:', values.email + ' Password:', values.password);
-    // setError('');
+    // console.log('Email:', values.email, 'Password:', values.password);
+    setError('');
 
     try {
-      const data = await login(values.email, values.password);
-
-      // console.log('Login successful:', data);
-      window.location.href = '/pos'; // Redirigir a la página principal
-      // router.push('/pos'); // Cambia '/login' a la ruta deseada
+        const data = await login(values.email, values.password);
+        // console.log('Login data:', data); // Verifica la respuesta de la API
+        if (data.token) {
+            localStorage.setItem('token', data.token);
+            // console.log('Token almacenado:', localStorage.getItem('token')); // Verifica que el token se almacene
+            router.push('/pos'); // Redirige a la página principal
+        } else {
+            setError('No se recibió un token de autenticación.');
+        }
     } catch (err) {
-      setError('Credenciales inválidas');
-      console.error(err);
+        setError('Credenciales inválidas');
+        console.error('Error en el login:', err);
     }
-  };
+};
   
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card className="overflow-hidden">
         <CardContent className="grid p-0 md:grid-cols-2">
+        {error && <p style={{ color: 'red' }}>{error}</p>}
 
           <Form {...form}>
             <form className="p-6 md:p-8" onSubmit={form.handleSubmit(onSubmit)}>

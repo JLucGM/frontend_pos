@@ -11,12 +11,15 @@ export function ModeLogout() {
     const router = useRouter(); // Mueve esto aquí
 
     const handleLogout = async () => {
-        try {
-            await logout();
-            // Redirigir o hacer algo después de cerrar sesión
-            window.location.href = '/'; // Redirigir a la página de inicio de sesión
-        } catch (err) {
-            console.error('Error al cerrar sesión:', err);
+        const token = localStorage.getItem('token');
+        if (token) {
+            try {
+                await logout(token);
+                localStorage.removeItem('token'); // Elimina el token del almacenamiento
+                router.push('/'); // Redirige a la página de login
+            } catch (err) {
+                console.error('Logout failed', err);
+            }
         }
     };
 

@@ -15,7 +15,7 @@ export const login = async (email: string, password: string) => {
         if (response.data && response.data.token) {
             // Aquí se asume que la API devuelve un token
             const token = response.data.token; // Usa el token devuelto por la API
-console.log('Token:', token);
+            // console.log('Token:', token);
             // Generar un nuevo token JWT (si es necesario)
             const jwtToken = jwt.sign(
                 { email }, // Solo incluye el email en el payload
@@ -46,14 +46,32 @@ console.log('Token:', token);
     }
 };
 
-export const logout = async () => {
-    const token = localStorage.getItem('token');
-    console.log('Token:', token);
+export const getProfile = async (token: string) => {
+    // console.log('Token:', token);
+    try {
+        const response = await axios.get(`${API_URL}profile`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        });
+
+        // console.log('Profile data:', response.data);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching profile:', error);
+        throw error;
+    }
+};
+
+export const logout = async (token: string) => {
+    // const myToken = localStorage.getItem('token');
+
     const response = await axios.post(`${API_URL}logout`, {}, {
         headers: {
             Authorization: `Bearer ${token}`,
         },
     });
+
     document.cookie = serialize('myToken', '', {
         httpOnly: false,
         secure: process.env.NODE_ENV === 'production',
@@ -62,6 +80,5 @@ export const logout = async () => {
         maxAge: -1, // Expira la cookie inmediatamente
     });
 
-    // console.log('Logout successful, token removed from cookie');
     return response.data;
 };
